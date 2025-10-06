@@ -40,7 +40,12 @@ ESC adds collection of configuration data and opens up possibilities for advance
 | AI/Analytics integration | Out-of-box | Weak |
 | User effort | Moderate | Low |
 
-Please pay attention to the last row: ESC users will likely have to figure some things out on their own. A small upgrade to this or that part may break something, or some of the many gathered configuration details may stop being gathered after a SANtricy upgrade (or, current code may not work well with your old SANtricity 11.80).
+Please pay attention to last row: ESC users have to be ready to do more on their own: whether it's troubleshooting or setup:
+
+- As ESC collects (at least) 5 times more information than EPA 3, any chyange may break something else
+- For the same reason, ESC is more sensitive to any API changes. Don't be surprised if you see a measurement stop receiving updates after a SANtricity upgrade, and don't be surprised if the bug remains unfixed because no one who reads issues has the hardware and the SANtricity version to duplicate and fix the problem
+
+Unfortunately, that's the reality. 
 
 ## Features
 
@@ -62,7 +67,7 @@ Please pay attention to the last row: ESC users will likely have to figure some 
   - Enables Quantum-Resistant proxying of Web and API access to SANtricity API
 - Future-proof design
   - Database back-end on InfluxDB 3 released in 2025 - good for years to come
-  - Python 3.10+ with InfluxDB3 client developed by InfluxDB community and only few other basic modules
+  - Python 3.12+ with InfluxDB3 client developed by InfluxDB community and only few other basic modules
   - InfluxDB Explorer - Web UI for data exploration using SQL or Natural Language Processing/AI
   - External reverse HTTPS proxy for easy access by InfluxDB 3 MCP Server or other authorized clients
 - Agility and simplicity
