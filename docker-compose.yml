@@ -1,0 +1,272 @@
+services:
+  
+  proxy:
+    image: docker.io/nginx:${NGINX_IMAGE}
+    container_name: proxy
+    restart: "unless-stopped"
+    ports:
+      # Map host port -> same container port so nginx (which listens on
+      # ${PROXY_*} as rendered into the config) actually receives the traffic
+      - "${PROXY_HTTP_PORT}:${PROXY_HTTP_PORT}"
+      - "${PROXY_HTTPS_PORT}:${PROXY_HTTPS_PORT}"
+      - "${PROXY_EXPLORER_PORT}:${PROXY_EXPLORER_PORT}"
+      - "${PROXY_GRAFANA_PORT}:${PROXY_GRAFANA_PORT}"
+      - "${PROXY_INFLUXDB_PORT}:${PROXY_INFLUXDB_PORT}"
+    environment:
+      - NGINX_IMAGE=${NGINX_IMAGE}
+    volumes:
+      - ./data/nginx/ssl:/etc/nginx/ssl:ro
+      - ./data/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./data/nginx/index.html:/usr/share/nginx/html/index.html:ro
+      - ./data/nginx/logs/:/nginx-logs/:rw
+    networks:
+      epa:
+        ipv4_address: ${PROXY_IP}
+
+  influxdb:
+    container_name: influxdb
+    image: "${IMAGE_PREFIX}influxdb:${INFLUXDB3_VERSION}"
+    restart: "unless-stopped"
+    build:
+      context: .
+      dockerfile: influxdb/Dockerfile
+      args:
+        INFLUXDB3_BUILD_VERSION: ${INFLUXDB3_BUILD_VERSION}
+    # ports:
+      # - "${INFLUXDB_PORT}:8181"
+      # Port 8182 (admin token recovery) is enabled NOT exposed for security
+      # It's only accessible within the Docker network for internal token generation
+    environment:
+      # Removed S3-related environment variables since we're using local file storage
+      TLS_KEY: /home/influx/certs/influxdb.key
+      TLS_CERT: /home/influx/certs/influxdb.crt
+      TLS_MIN_VERSION: tls-1.3
+      INFLUXDB3_TLS_CA: /home/influx/certs/ca.crt
+      TLS_CA: /home/influx/certs/ca.crt
+      NODE_ID: ${INFLUXDB_NODE_ID}
+      INFLUXDB3_ADMIN_TOKEN: ${INFLUXDB_ADMIN_TOKEN}
+      TOKEN_FILE: /home/influx/tokens/epa.token
+      INFLUXDB3_TELEMETRY_DISABLE_UPLOAD: ${INFLUXDB3_TELEMETRY_DISABLE_UPLOAD}
+      WAL_FLUSH_INTERVAL: ${WAL_FLUSH_INTERVAL} 
+    volumes:
+      - ./certs/influxdb/influxdb.crt:/home/influx/certs/influxdb.crt:ro
+      - ./certs/influxdb/influxdb.key:/home/influx/certs/influxdb.key:ro
+      - ./certs/influxdb/ca.crt:/home/influx/certs/ca.crt:ro
+      - ./data/influxdb:/var/lib/influxdb3
+      - ./data/influxdb_tokens:/home/influx/tokens
+    entrypoint: ["/home/influx/entrypoint.sh"]
+    command: []
+    networks:
+      epa:
+        ipv4_address: ${INFLUXDB_IP}
+
+  collector:
+    image: "${IMAGE_PREFIX}collector-datasource:${COLLECTOR_VERSION}"
+    build:
+      context: .
+      dockerfile: collector/Dockerfile
+      args:
+        PYTHON_VERSION: ${PYTHON_VERSION}
+        PYTHON_DIGEST: ${PYTHON_DIGEST}
+    container_name: collector
+    restart: "unless-stopped"  # Change to "no" for testing with MAX_ITERATIONS > 0
+    # restart: "no"  # Change to "no" for testing with MAX_ITERATIONS > 0
+    # ports:  # disabled to force access via NGINX proxy only for better security
+    #   - "${PROMETHEUS_PORT:-8000}:8000"  # Expose Prometheus metrics port
+    environment:
+      # InfluxDB connection (connects to existing in-Docker influxdb service)
+      INFLUX_HOST: influxdb
+      INFLUX_PORT: 8181
+      INFLUX_DB: epa
+      INFLUXDB_ORG: netapp
+      INFLUXDB3_AUTH_TOKEN_FILE: /home/collector/tokens/epa.token
+      INFLUXDB3_TLS_CA: /home/collector/certs/ca.crt
+      TLS_CA: /home/collector/certs/ca.crt
+      
+      # E-Series API address/FQDN - define in .env file or override here. Recommended to use a monitor account on E-Series
+      API: ${API}
+      USERNAME: ${SANTRICITY_USERNAME}
+      PASSWORD: ${SANTRICITY_PASSWORD}
+      
+      # Logging and control
+      COLLECTOR_LOG_LEVEL: INFO
+      COLLECTOR_LOG_FILE: "/data/samples/out/collector.log" # Log file path inside container, in effect only in DEBUG mode
+      MAX_ITERATIONS: 0     # 0 for continuous, >0 for fixed number of iterations
+      
+      # JSON replay mode - samples gathered with raw_collector_cli.py should be available 
+      # FROM_JSON: "/data/samples/in"
+      # SYSTEM_ID: "6D039EA0004D00AA000000006652A086" # SYSTEM_ID required when FROM_JSON is set
+      # SYSTEM_ID: "600A098000F63714000000005E79C17C" # System with failed PSU
+      
+      # Output configuration - influxdb, prometheus, both (default: influxdb for predictable security)
+      OUTPUT: "influxdb"
+      PROMETHEUS_PORT: 8000
+      
+      # Collection behavior
+      INCLUDE_ENVIRONMENTAL: true
+      INCLUDE_EVENTS: true
+      INTERVAL_TIME: 60
+      
+      # TLS validation for E-Series API endpoints (InfluxDB connection always uses strict, here you can set none if so inclined)
+      TLS_VALIDATION: "normal"
+      
+      # Grafana API Integration - not currently used, but left in here as an example of how it can be used
+      GRAFANA_API_URL: ${GRAFANA_API_URL}
+      GRAFANA_API_TOKEN: ${GRAFANA_API_TOKEN}
+    depends_on:
+      - influxdb
+    volumes:
+      - ./certs/collector:/home/collector/certs:ro
+      - ./data/influxdb_tokens/epa.token:/home/collector/tokens/epa.token:ro
+      # - ./data/samples/in:/data/samples/in:rw   # when access to JSON needed for JSON replay mode
+      # - ./data/samples/out:/data/samples/out:rw # not needed unless you want to persist logs in DEBUG mode
+    networks:
+      epa:
+        ipv4_address: ${EPA_COLLECTOR:-172.40.0.25}
+
+  utils:
+    image: "${IMAGE_PREFIX}utils:${COLLECTOR_VERSION}"
+    build:
+      context: ./utils
+    container_name: utils
+    restart: "unless-stopped"
+    tty: true
+    stdin_open: true
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
+      S3_ENDPOINT: https://s3:7070
+      BUCKET: ${S3_BUCKET}
+      CRED_DIR: /influxdb_credentials
+      INFLUX_HOST: influxdb
+      # INFLUX_HOST: ${INFLUXDB_IP:-influxdb} # you can't use IP here because of TLS validation unless TLS cert issued to IP.
+      INFLUX_PORT: ${INFLUXDB_PORT:-8181}
+      INFLUX_DB: ${INFLUXDB_DB:-epa}
+      INFLUXDB3_TLS_CA: /home/influx/certs/ca.crt
+      INFLUXDB3_AUTH_TOKEN_FILE: /home/influx/epa.token
+    networks:
+      epa:
+    volumes:
+      - ./certs/_master/ca.crt:/home/influx/certs/ca.crt:ro
+      - ./certs/influxdb/influxdb.crt:/home/influx/certs/influxdb.crt:ro
+      - ./data/influxdb_tokens/epa.token:/home/influx/epa.token:ro
+      - ./docs:/docs:rw
+    command: ["tail","-f","/dev/null"]
+
+  influx-mcp:
+    image: "${IMAGE_PREFIX}influxdb-mcp:${INFLUXDB_MCP_VERSION:-latest}"
+    build:
+      context: ./influx-mcp
+      dockerfile: Dockerfile
+    container_name: influx-mcp
+    restart: "unless-stopped"
+    entrypoint: ["/usr/local/bin/entrypoint.sh"]
+    environment:
+      INFLUX_DB: ${INFLUXDB_DB}
+      INFLUX_DB_INSTANCE_URL: https://${INFLUXDB_HOST}:${INFLUXDB_PORT}
+      INFLUXDB3_TLS_CA: /etc/ssl/certs/ca.crt
+      # INFLUXDB_TOKEN: /home/influxd/epa.token
+      INFLUXDB3_AUTH_TOKEN_FILE: /home/influx/epa.token
+      INFLUX_DB_PRODUCT_TYPE: core
+      NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca.crt
+      SSL_CERT_FILE:       /etc/ssl/certs/server.crt
+      SSL_KEY_FILE:        /etc/ssl/private/server.key      
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./certs/_master/ca.crt:/etc/ssl/certs/ca.crt:ro
+      - ./certs/influx-mcp/server.crt:/etc/ssl/certs/server.crt:ro
+      - ./certs/influx-mcp/server.key:/etc/ssl/private/server.key:ro
+      - ./data/influxdb_tokens/epa.token:/home/influx/epa.token:ro
+    networks:
+      epa:
+        ipv4_address: ${INFLUX_MCP_IP}
+
+  grafana:
+    build:
+      # Use repository root as the build context so Docker can COPY certs/_master/ca.crt
+      context: .
+      dockerfile: ./grafana/Dockerfile
+    image: ${IMAGE_PREFIX}grafana:${GRAFANA_VERSION:-12.2-with-ca}
+    # Versions before 12.2 have issues with custom CA
+    container_name: grafana
+    restart: "unless-stopped"
+    # ports:   # disabled to force access via NGINX proxy only for better security
+    #   - "${GRAFANA_PORT}:3000" # HTTP internally, HTTPS externally via NGINX
+    expose:
+      - "${GRAFANA_PORT}"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      # Serve HTTPS internally so nginx can proxy to Grafana via TLS
+      GF_SERVER_PROTOCOL: https
+      GF_SERVER_HTTP_PORT: ${GRAFANA_PORT}
+      GF_SERVER_HTTP_ADDR: 0.0.0.0
+      # TLS cert/key for Grafana (should exist in ./certs/grafana)
+      GF_SERVER_CERT_FILE: /etc/grafana/certs/grafana.crt
+      GF_SERVER_CERT_KEY: /etc/grafana/certs/grafana.key
+      # Trust custom CA for InfluxDB connections
+      GF_SERVER_ROOT_URL: https://localhost:${GRAFANA_PORT}
+      # External URL through the proxy (used for origin checks and redirects)
+      # Workaround for Grafana 12.1 custom CA bug
+      GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION: "false"
+      GF_DATABASE_SSL_MODE: "disable"
+      GF_PLUGIN_ENABLE_ALPHA: "true"
+    volumes:
+      - ./certs/_master/ca.crt:/usr/local/share/ca-certificates/ca.crt:ro
+      - ./certs/grafana:/etc/grafana/certs:ro
+      - ./data/grafana/storage:/var/lib/grafana
+    depends_on:
+      - influxdb
+    networks:
+      epa:
+        ipv4_address: ${GRAFANA_IP}
+
+  explorer:
+    image: "${IMAGE_PREFIX}influxdb3-ui:${INFLUXDB3_EXPLORER_VERSION:-1.3.0}"
+    build:
+      context: .
+      dockerfile: ./explorer/Dockerfile
+      args:
+        INFLUXDB3_EXPLORER_VERSION: ${INFLUXDB3_EXPLORER_VERSION:-1.3.0}
+    container_name: explorer
+    restart: "unless-stopped"
+    # ports:  # disabled to force access via NGINX proxy only for better security
+      # - "${EXPLORER_PORT}:443"
+    environment:
+      SSL_CERT_PATH: /etc/nginx/ssl/cert.pem
+      SSL_KEY_PATH: /etc/nginx/ssl/key.pem
+      DATABASE_URL: /db/sqlite.db
+      NODE_ENV: production
+      # Ensure Node trusts the internal CA used for InfluxDB and proxy TLS
+      NODE_EXTRA_CA_CERTS: /usr/local/share/ca-certificates/ca.crt
+    command:
+      - "--mode=admin"
+    volumes:
+      - ./data/explorer/db:/db:rw
+      - ./data/explorer/config:/app-root/config:ro
+      # InfluxDB Explorer's TLS certificates (expects cert.pem and key.pem)
+      - ./certs/explorer:/etc/nginx/ssl:ro
+      - ./certs/explorer/ca.crt:/usr/local/share/ca-certificates/ca.crt:ro
+    depends_on:
+      - influxdb
+    healthcheck:
+      # Check that the internal Node process (port 8888) and nginx (port 443)
+      # are listening. The packaged explorer does not expose a simple /health
+      # HTTP path (it returns 404/400), so use a TCP listen test via netstat
+      # which is available in the container image.
+      test: ["CMD-SHELL", "netstat -ltnp 2>/dev/null | grep -q ':8888' && netstat -ltnp 2>/dev/null | grep -q ':443' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+    networks:
+      epa:
+        ipv4_address: ${EXPLORER_IP}
+        aliases:
+          - explorer
+
+networks:
+  epa:
+    ipam:
+      config:
+        - subnet: ${EPA_SUBNET}

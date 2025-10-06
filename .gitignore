@@ -1,0 +1,180 @@
+# Default ignores for Python environments and VS Code
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+app/collector/__pycache__/
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.env
+
+# Logs and databases
+*.log
+*.sqlite3
+
+# Unit test / coverage reports
+htmlcov/
+.coverage
+.coverage.*
+.pytest_cache/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# VS Code settings folder
+.vscode/
+*.code-workspace
+
+# IDE files
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+tests/
+./tests/
+
+# Proxy/NGINX SSL certs
+data/nginx/ssl/
+# Certs
+certs/
+# Tests
+test_*.sh
+test_*.py
+# Data samples
+data/samples/*
+
+# Database API tokens
+data/influxdb_tokens/admin.token
+data/influxdb_tokens/epa.token
+data/influxdb_tokens/*
+
+#### INCLUDE ####
+
+# basic stuff
+!/.gitignore
+!/README.md
+!/LICENSE
+
+# Docker stuff
+!docker-compose.yml
+!app/Dockerfile
+!influxdb/Dockerfile
+!utils/Dockerfile
+!nginx/Dockerfile
+!explorer/Dockerfile
+
+# Uility scripts
+!/scripts/*.sh
+!/scripts/*.py
+
+# Certs and keys
+certs/_master/*
+
+!certs/_master/
+!certs/.gitkeep
+
+!certs/_master/.gitkeep
+!certs/_master/gen_ca_tls_certs.py
+
+!certs/proxy/.gitkeep
+!certs/s3/.gitkeep
+!certs/collector/.gitkeep
+!certs/explorer/.gitkeep
+!certs/utils/.gitkeep
+!certs/influxdb/.gitkeep
+!certs/influx-mcp/.gitkeep
+
+# Data dir
+!data/.gitkeep
+!data/influxdb/.gitkeep
+!data/nginx/.gitkeep
+!data/nginx/nginx.conf.tpl
+!data/utils/.gitkeep
+!data/grafana/storage/.gitkeep
+!data/influxdb_tokens/.gitkeep
+!data/influxdb_credentials/.gitkeep
+
+# DataClass pattern directory
+# collector/
+
+# Proxy container
+#!proxy/Dockerfile # needed to build in CA especially external-facing
+
+# S3 container
+!s3/Dockerfile
+!s3/entrypoint.sh
+
+# InfluxDB container
+!influxdb/Dockerfile
+!influxdb/entrypoint.sh
+!influxdb/downsampling-config.yaml
+
+# Influx MCP container
+!data/influx-mcp/host.docker.internal
+!influx-mcp/Dockerfile
+!influx-mcp/entrypoint.sh
+influx-mcp/entrypoint.sh
+
+# Explorer container
+!explorer/Dockerfile
+
+# EPA/Collector container
+!app/Dockerfile
+!app/entrypoint.sh
+!app/*.py
+!app/requirements.txt
+
+# Utilities container
+!utils/entrypoint.sh
+!utils/Dockerfile
+!utils/README.md
+
+# EPA Collector Python app
+!app/*.py
+!app/requirements.txt
+!app/cache/
+!app/collectors/
+!app/enrichment/
+!app/schema/
+
+# Scripts
+!scripts/fetch-external.sh
+!scripts/data-dir-ownership.sh
+!scripts/proxy-home-page.sh
+
+# Images
+!/images/epa-eseries-perf-analyzer.png
+!/images/epa-v4-qrc-tls.svg
+!/images/epa-v4-services-diagram.svg
+!/images/epa-v4-tls.png
+!/images/influxdb3-explorer.png
+!/images/epa-storage-analytics-exploration.png

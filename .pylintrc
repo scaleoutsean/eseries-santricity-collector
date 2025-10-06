@@ -1,0 +1,13 @@
+[MASTER]
+disable=
+    C,R,I,  # Disable Convention, Refactor, and Info messages
+    logging-fstring-interpolation,  # Allow f-strings in logging (modern Python standard)
+    protected-access,  # Allow access to _raw_data (intentional design)
+    broad-exception-caught,  # Allow catching Exception in high-level operations
+    fixme  # Allow TODO comments
+
+[REPORTS]
+output-format=colorized
+
+[MESSAGES CONTROL]
+extension-pkg-whitelist=urllib3
