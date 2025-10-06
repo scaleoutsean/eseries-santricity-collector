@@ -42,7 +42,7 @@ ESC adds collection of configuration data and opens up possibilities for advance
 
 Please pay attention to last row: ESC users have to be ready to do more on their own: whether it's troubleshooting or setup:
 
-- As ESC collects (at least) 5 times more information than EPA 3, any chyange may break something else
+- As ESC collects (at least) 5 times more information than EPA 3, any change in the API, stack comoponent version or hardware configuration may potentially break something
 - For the same reason, ESC is more sensitive to any API changes. Don't be surprised if you see a measurement stop receiving updates after a SANtricity upgrade, and don't be surprised if the bug remains unfixed because no one who reads issues has the hardware and the SANtricity version to duplicate and fix the problem
 
 Unfortunately, that's the reality. 
