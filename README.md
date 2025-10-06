@@ -199,11 +199,14 @@ See [GETTING_STARTED](./docs/GETTING_STARTED) and [DOCUMENTATION](./docs/DOCUMEN
 config_controller
 config_drives
 config_ethernet_interface
+config_host_groups
 config_hosts
 config_interfaces
+config_snapshot_groups
+config_snapshot_schedules
+config_snapshots
 config_storage_pools
 config_system
-config_tray
 config_volume_mappings
 config_volumes
 env_power
@@ -217,9 +220,11 @@ performance_system_statistics
 performance_volume_statistics
 ```
 
-A reasonably up-to-date and complete schema can be found in [SCHEMA](./docs/SCHEMA.md).
+A schema can be found in [SCHEMA](./docs/SCHEMA.md).
 
-Note that the schema is not "complete", because without having access to a variety of hardware configurations (which I don't have) I can't possibly know or "collect" all the fields that may exist out there. As an example, hardware array I had access to has no Flash Cache feature, so I've no idea how those fields might look like if I had a chance to collect those performance or configuration details. 
+Note that the schema is not and cannot be "complete" because without having access to a variety of hardware configurations (which I don't have) I can't possibly know or "collect" all the fields that may exist out there. As an example, the hardware array I had access to has no Flash Cache feature, so I've no idea how those fields might look like if I had a chance to collect those performance or configuration details.
+
+You may see fewer measurements in your case if you don't have some features configured. ESC doesn't collect everything.
 
 ## Prometheus metrics
 
