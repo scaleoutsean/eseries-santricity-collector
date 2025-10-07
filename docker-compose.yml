@@ -7,7 +7,7 @@ services:
     ports:
       # Map host port -> same container port so nginx (which listens on
       # ${PROXY_*} as rendered into the config) actually receives the traffic
-      - "${PROXY_HTTP_PORT}:${PROXY_HTTP_PORT}"
+      # - "${PROXY_HTTP_PORT}:${PROXY_HTTP_PORT}" - disabled as modern browsers misbehave
       - "${PROXY_HTTPS_PORT}:${PROXY_HTTPS_PORT}"
       - "${PROXY_EXPLORER_PORT}:${PROXY_EXPLORER_PORT}"
       - "${PROXY_GRAFANA_PORT}:${PROXY_GRAFANA_PORT}"

@@ -142,12 +142,9 @@
     #     }
     # }
 
-    server {
-        listen ${PROXY_HTTP_PORT};
-        server_name proxy;
-        return 301 https://$host:${PROXY_HTTPS_PORT}$request_uri;
+    # HTTP redirect removed - modern browsers handle this poorly
+    # Users should connect directly to HTTPS port ${PROXY_HTTPS_PORT}
 
-    }
     server {
         listen ${PROXY_HTTPS_PORT} ssl;
         # May need proper external name i.e. variable replacement for server name to match external TSL cert SAN; {{ proxy_host }}
