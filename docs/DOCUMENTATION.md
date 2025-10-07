@@ -487,6 +487,15 @@ See the choices [here](https://github.com/influxdata/influxdb3_mcp_server?tab=re
 
 Although InfluxDB MCP is included for exploratory integration, it is best to deploy it on clients and use reverse HTTPS proxy to securely connect to InfluxDB. Just connect to the `utils` container create a token for DB access by MCP server.
 
+To get the source, build and deploy, use `./scripts/fetch-external.sh`, followed by:
+
+```sh
+docker compose --profile mcp build
+docker compose --profile mcp up -d
+```
+
+InfluxDB should be running, obviously.
+
 ## Tips
 
 ### Connecting from external InfluxDB clients

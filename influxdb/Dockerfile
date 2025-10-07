@@ -3,7 +3,6 @@ LABEL maintainer="@scaleoutSean"
 
 # Set default InfluxDB3 version (can be overridden at build time)
 ARG INFLUXDB3_BUILD_VERSION=3.5.0
-ENV INFLUXDB3_BUILD_VERSION=${INFLUXDB3_BUILD_VERSION}
 
 # Install dependencies for InfluxDB3 and plugin processing
 RUN apt-get update && \
@@ -66,9 +65,6 @@ RUN echo "=== EPA InfluxDB3 Embedded Plugin Summary ===" && \
     echo "EPA plugins:" && \
     ls -la /tmp/plugins/sfc/ 2>/dev/null || echo "EPA plugins directory not found" && \
     echo "Embedded plugin architecture ready"
-
-# Copy downsampling configuration
-COPY influxdb/downsampling-config.yaml /tmp/plugins/downsampling-config.yaml
 
 COPY influxdb/entrypoint.sh /home/influx/entrypoint.sh
 RUN chmod +x /home/influx/entrypoint.sh
