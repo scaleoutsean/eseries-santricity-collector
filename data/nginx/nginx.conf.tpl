@@ -152,7 +152,7 @@
         listen ${PROXY_HTTPS_PORT} ssl;
         # May need proper external name i.e. variable replacement for server name to match external TSL cert SAN; {{ proxy_host }}
         server_name _;
-        ssl_protocols     TLSv1.3 TLSv1.2;
+        ssl_protocols     TLSv1.3;
         ssl_prefer_server_ciphers on;
         ssl_ciphers       ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
         # ssl_ecdh_curve    X25519MLKEM768;
