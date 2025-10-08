@@ -87,6 +87,12 @@ For historical analysis of various system events, consider using syslog forwardi
 
 ## Visualization and analytics
 
+### It's annoying that InfluxDB Explorer requires me to configure InfluxDB server after a restart
+
+It is possible to configure Explorer to persist its configuration, but since there is no authentication, anyone would be able to use it. In addition, ESC configures it in admin mode, so it's not just queries that would be open. 
+
+You can modify Explorer configuration (refer to their docuemntation), but consider also modifying Proxy authentication settings to protect the site from unauthorized access. Or deploy Explorer in an protected zone/namespace and securely connect to InfluxDB using Proxy's FQDN and (by default) HTTPS on port 18181.
+
 ### Can ECS (EPA 4) use EPA 3 dashboards?
 
 No, ECS is vastly different. A reference dashboard may be provided at a later time.
