@@ -43,9 +43,7 @@ ESC adds collection of configuration data and opens up possibilities for advance
 Please pay attention to last row: ESC users have to be ready to do more on their own: whether it's troubleshooting or setup:
 
 - As ESC collects (at least) 5 times more information than EPA 3, any change in the API, stack comoponent version or hardware configuration may potentially break something
-- For the same reason, ESC is more sensitive to any API changes. Don't be surprised if you see a measurement stop receiving updates after a SANtricity upgrade, and don't be surprised if the bug remains unfixed because no one who reads issues has the hardware and the SANtricity version to duplicate and fix the problem
-
-Unfortunately, that's the reality. 
+- For the same reason, ESC is more sensitive to hardware configuration and API changes. Don't be surprised if you see a measurement stop receiving updates after a SANtricity upgrade, and don't be surprised if the bug remains unfixed because no one who reads the issues here has the hardware and the SANtricity version to duplicate and fix the problem. Unfortunately, that's the reality. But it's OSS, so you have a chance to fix it on your own
 
 ## Features
 
@@ -171,11 +169,11 @@ If you want the entire (or most of) the ESC stack, then this is what needs to ha
 2. Generate or provide own CA/TLS certificates and keys in `./certs`. You can use `./certs/_master/gen_ca_tls_certs.py` if you don't have your own. These are meant for in-Docker container-to-container use
 3. Edit `docker-compose.yml` entries, mostly to provide E-Series (controller) API endpoints and credentials (`API`, `USERNAME`, `PASSWORD`)
 4. Set ownership on directories as required by InfluxDB and Grafana (or run `./scripts/fix_directory_ownership.sh`)
-5. One important thing our `proxy` is still missing is "external" (LAN/public) certificate so that LAN clients don't deal with snake-oil certificates. Get these issued for your `PROXY_HOST` (such as `proxy.datafabric.lan`) and copy them to `./certs/proxy/external/` (by "them" I mean: your organization's `org_ca.crt` and Org CA-issued `server.crt`, `private.key` for your `proxy.datafabric.lan` (whatever you picked) - three files in total)
-6. We edited PROXY-related details in step 1 which is enough for Docker Compose, but our proxy configuration has no knowledge of that. So, we run `./scripts/proxy_configuration.py` or use manual steps to the same effect
+5. One important thing our `proxy` service is still missing is "external" (LAN/public) certificate so that LAN clients don't deal with snake-oil certificates. Get these issued for your `PROXY_HOST` (such as `proxy.datafabric.lan`) and copy them to `./certs/proxy/external/` (by "them" I mean: your organization's `org_ca.crt` and Org CA-issued `server.crt`, `private.key` for your `proxy.datafabric.lan` (whatever FQDN you picked) - three files in total)
+6. We edited `PROXY_`-related details in step 1 which is enough for Docker Compose, but our proxy service configuration has no knowledge of that. So, we run `./scripts/proxy_configuration.py` or use manual steps to the same effect
 7. Now we can build containers we want to use with `docker-compose build <service>`
 
-Services don't have specific start-up order, but `influxdb` tokens won't exist until you run it at least once, which means no other services will be able to provide useful. So start `influxdb` to create API tokens, and then you can start other services like `collector`, `explorer`, `grafana` (doesn't use on-disk tokens, but can't add InfluxDB data source without a valid token), and `utils`. Later on, you can start `grafana` or other services first (of course, they won't be able to access `influxdb` if it's down). The `proxy` container shuold generally be the last to be started, when all other services you plan to run are enabled.
+Services don't have specific start-up order, but `influxdb` tokens won't exist until you run it at least once, which means no other services will be able to provide useful output until InfluxDB has run and is running. So, start `influxdb` to have it auto-create API tokens, and then you can start other services like `collector`, `explorer`, `grafana` (doesn't use on-disk tokens, but can't add InfluxDB data source without a valid token and DB service available), and `utils`. Later on, you can start `grafana` or other services first (of course, they won't be able to access `influxdb` if it's down). The `proxy` container shuold generally be the last to be started, when all other services you plan to run are enabled.
 
 A more detailed workflow with step-by-step commands is in [GETTING_STARTED](./docs/GETTING_STARTED.md).
 
