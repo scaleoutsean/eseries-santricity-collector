@@ -144,7 +144,7 @@ pip3 install -r collector/requirements.txt
 python3 -m collector -h
 ```
 
-See [GETTING STARTED](GETTING_STARTED.md) for more.
+See [GETTING STARTED](/docs/GETTING_STARTED.md) for more.
 
 Note that this makes it possible to run EPA Collector, while the rest of the stack is an exercise for the user. What's next?
 
