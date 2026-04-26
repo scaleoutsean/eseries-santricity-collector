@@ -1,5 +1,7 @@
 # Change log
 
+- 4.1.0 ( , 2026)
+
 - 4.0.0 (October 7, 2025)
   - Full re-write of E-Series Performance Analyzer version 3
   - Major database back-end upgrade to InfluxDB 3 Core. Data migration from EPA 3 (InfluxDB v1) is not supported  

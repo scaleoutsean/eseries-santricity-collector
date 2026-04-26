@@ -25,36 +25,36 @@ services:
 
   influxdb:
     container_name: influxdb
-    image: "${IMAGE_PREFIX}influxdb:${INFLUXDB3_VERSION}"
+    # Use official InfluxDB Core image
+    image: influxdata/influxdb:3-core
     restart: "unless-stopped"
-    build:
-      context: .
-      dockerfile: influxdb/Dockerfile
-      args:
-        INFLUXDB3_BUILD_VERSION: ${INFLUXDB3_BUILD_VERSION}
-    # ports:
-      # - "${INFLUXDB_PORT}:8181"
-      # Port 8182 (admin token recovery) is enabled NOT exposed for security
-      # It's only accessible within the Docker network for internal token generation
+    # build:
+    #   context: .
+    #   dockerfile: influxdb/Dockerfile
+    #   args:
+    #     INFLUXDB3_BUILD_VERSION: ${INFLUXDB3_BUILD_VERSION}
     environment:
-      # Removed S3-related environment variables since we're using local file storage
+      # TLS Configuration
       TLS_KEY: /home/influx/certs/influxdb.key
       TLS_CERT: /home/influx/certs/influxdb.crt
       TLS_MIN_VERSION: tls-1.3
       INFLUXDB3_TLS_CA: /home/influx/certs/ca.crt
       TLS_CA: /home/influx/certs/ca.crt
-      NODE_ID: ${INFLUXDB_NODE_ID}
+      
+      # InfluxDB Configuration
+      NODE_ID: ${INFLUXDB_NODE_ID:-1}
       INFLUXDB3_ADMIN_TOKEN: ${INFLUXDB_ADMIN_TOKEN}
       TOKEN_FILE: /home/influx/tokens/epa.token
-      INFLUXDB3_TELEMETRY_DISABLE_UPLOAD: ${INFLUXDB3_TELEMETRY_DISABLE_UPLOAD}
-      WAL_FLUSH_INTERVAL: ${WAL_FLUSH_INTERVAL} 
+      INFLUXDB3_TELEMETRY_DISABLE_UPLOAD: "true"
+      WAL_FLUSH_INTERVAL: ${WAL_FLUSH_INTERVAL:-10s} 
     volumes:
+      - ./influxdb/entrypoint.sh:/entrypoint.sh:ro
       - ./certs/influxdb/influxdb.crt:/home/influx/certs/influxdb.crt:ro
       - ./certs/influxdb/influxdb.key:/home/influx/certs/influxdb.key:ro
       - ./certs/influxdb/ca.crt:/home/influx/certs/ca.crt:ro
       - ./data/influxdb:/var/lib/influxdb3
       - ./data/influxdb_tokens:/home/influx/tokens
-    entrypoint: ["/home/influx/entrypoint.sh"]
+    entrypoint: ["/bin/bash", "/entrypoint.sh"]
     command: []
     networks:
       epa:
@@ -128,6 +128,8 @@ services:
     image: "${IMAGE_PREFIX}utils:${COLLECTOR_VERSION}"
     build:
       context: ./utils
+      args:
+        INFLUXDB3_BUILD_VERSION: ${INFLUXDB3_VERSION:-3.8.0}
     container_name: utils
     restart: "unless-stopped"
     tty: true
@@ -143,14 +145,14 @@ services:
       INFLUX_PORT: ${INFLUXDB_PORT:-8181}
       INFLUX_DB: ${INFLUXDB_DB:-epa}
       INFLUXDB3_TLS_CA: /home/influx/certs/ca.crt
-      INFLUXDB3_AUTH_TOKEN_FILE: /home/influx/epa.token
+      INFLUXDB3_AUTH_TOKEN_FILE: /home/influx/tokens/admin.token
     networks:
       epa:
         ipv4_address: ${UTILS_IP}
     volumes:
       - ./certs/_master/ca.crt:/home/influx/certs/ca.crt:ro
       - ./certs/influxdb/influxdb.crt:/home/influx/certs/influxdb.crt:ro
-      - ./data/influxdb_tokens/epa.token:/home/influx/epa.token:ro
+      - ./data/influxdb_tokens:/home/influx/tokens:ro
       - ./docs:/docs:rw
     command: ["tail","-f","/dev/null"]
 
@@ -250,6 +252,8 @@ services:
       # InfluxDB Explorer's TLS certificates (expects cert.pem and key.pem)
       - ./certs/explorer:/etc/nginx/ssl:ro
       - ./certs/explorer/ca.crt:/usr/local/share/ca-certificates/ca.crt:ro
+      # Mount tokens so user can find them if needed
+      - ./data/influxdb_tokens:/tokens:ro
     depends_on:
       - influxdb
     healthcheck:

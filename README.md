@@ -1,4 +1,8 @@
-# README
+# ESC - E-Series SANtricity Collector
+
+**UPDATE:** ESC won't be maintained as there's no interest in it. What worked well will be partially ported back to EPA (E-Series Performance Analyzer) version 4. More [here](https://scaleoutsean.github.io/2026/04/23/epa_400_beta.html).
+
+---
 
 - [README](#readme)
   - [E-Series SANtricity Collector (ESC) aka E-Series Performance Analyzer 4](#e-series-santricity-collector-esc-aka-e-series-performance-analyzer-4)

@@ -476,24 +476,14 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Generate CA and per-service TLS certificates.")
     # EPA Collector and Utils don't provide user-facing services and "CA" is just for generating the CA
-    parser.add_argument("--service", choices=["all", "proxy", "s3", "influxdb", "grafana", "explorer", "influx-mcp", "utils", "ca"], default="all", help="Which certs to generate")
+    parser.add_argument("--service", nargs='+', choices=["all", "proxy", "s3", "influxdb", "grafana", "explorer", "influx-mcp", "utils", "ca"], default=["all"], help="Which certs to generate")
     args = parser.parse_args()
+    
+    selected_services = set(args.service)
     ALL_CONTAINERS = ["proxy", "s3", "influxdb", "grafana", "explorer", "collector", "influx-mcp", "utils"]
-    if args.service == "ca":
-        create_certificates()
-    elif args.service == "proxy":
-        create_proxy_config()
-    elif args.service == "s3":
-        create_s3_config()
-    elif args.service == "influxdb":
-        create_influxdb_config()
-    elif args.service == "grafana":
-        create_grafana_config()
-    elif args.service == "explorer":
-        create_explorer_config()
-    elif args.service == "influx-mcp":
-        create_influx_mcp_config()
-    else:
+    
+    # helper for invoking all
+    def run_all():
         create_certificates()
         create_proxy_config()
         create_s3_config()
@@ -503,3 +493,29 @@ if __name__ == "__main__":
         create_influx_mcp_config()
         if not copy_ca_to_all():
             exit(1)
+
+    if "all" in selected_services:
+        run_all()
+    else:
+        # Always ensure CA exists first if we are doing anything
+        create_certificates()
+        
+        if "proxy" in selected_services:
+            create_proxy_config()
+        if "s3" in selected_services:
+            create_s3_config()
+        if "influxdb" in selected_services:
+            create_influxdb_config()
+        if "grafana" in selected_services:
+            create_grafana_config()
+        if "explorer" in selected_services:
+            create_explorer_config()
+        if "influx-mcp" in selected_services:
+            create_influx_mcp_config()
+            
+        # Copy CA to all containers regardless of selection to be safe, 
+        # or we could try to be smart. The original script copied to ALL at the end of 'else'.
+        # Since users might simply want to update one cert but ensure CA is everywhere...
+        # Also handles 'utils' / 'collector' cases which just need CA.
+        copy_ca_to_all()
+
